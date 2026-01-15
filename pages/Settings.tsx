@@ -146,7 +146,7 @@ const Settings: React.FC = () => {
         {/* Profile Card Mockup */}
         <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-6 text-white shadow-xl">
           <div className="flex items-center space-x-4">
-            <img src="/logo.svg" alt="FlexBook Logo" className="w-16 h-16 rounded-2xl" />
+            <img src="/FlexBook/logo.svg" alt="FlexBook Logo" className="w-16 h-16 rounded-2xl" />
             <div>
               <h2 className="text-xl font-black">FlexBook</h2>
               <p className="text-xs font-bold text-slate-400">데이터는 Firebase에 안전하게 저장됩니다.</p>

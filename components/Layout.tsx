@@ -19,7 +19,7 @@ const Layout: React.FC = () => {
       {/* Desktop Sidebar Navigation */}
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 fixed h-full z-50">
         <div className="p-6 flex items-center space-x-3">
-          <img src="/logo.svg" alt="FlexBook" className="w-10 h-10 rounded-xl shadow-lg shadow-blue-200" />
+          <img src="/FlexBook/logo.svg" alt="FlexBook" className="w-10 h-10 rounded-xl shadow-lg shadow-blue-200" />
           <span className="text-xl font-black tracking-tight text-slate-800">FlexBook</span>
         </div>
         
