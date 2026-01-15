@@ -11,6 +11,9 @@ import CategoryManagement from './pages/CategoryManagement';
 import AccountBalancePage from './pages/AccountBalance'; // 새 페이지 임포트
 import { RecurringExpenses } from './pages/RecurringExpenses';
 import { initializeDefaults } from './db';
+import { UpdateNotification } from './components/UpdateNotification';
+import { OnlineStatus } from './components/OnlineStatus';
+import { InstallPrompt } from './components/InstallPrompt';
 
 const App: React.FC = () => {
   const [isAuthReady, setIsAuthReady] = useState(false);
@@ -34,20 +37,25 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Household />} />
-          <Route path="recurring" element={<RecurringExpenses />} /> {/* 고정지출 라우트 */}
-          <Route path="balances" element={<AccountBalancePage />} /> {/* 새 라우트 등록 */}
-          <Route path="projects" element={<Projects />} />
-          <Route path="projects/:id" element={<ProjectDetail />} />
-          <Route path="statistics" element={<Statistics />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="settings/categories" element={<CategoryManagement />} />
-        </Route>
-      </Routes>
-    </Router>
+    <>
+      <UpdateNotification />
+      <OnlineStatus />
+      <InstallPrompt />
+      <Router>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Household />} />
+            <Route path="recurring" element={<RecurringExpenses />} /> {/* 고정지출 라우트 */}
+            <Route path="balances" element={<AccountBalancePage />} /> {/* 새 라우트 등록 */}
+            <Route path="projects" element={<Projects />} />
+            <Route path="projects/:id" element={<ProjectDetail />} />
+            <Route path="statistics" element={<Statistics />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="settings/categories" element={<CategoryManagement />} />
+          </Route>
+        </Routes>
+      </Router>
+    </>
   );
 };
 
