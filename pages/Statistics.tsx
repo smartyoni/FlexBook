@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
 import { getTransactions, getProjects } from '../db';
 import { Transaction, Project } from '../types';
-import { formatCurrency } from '../utils';
+import { formatCurrency, formatDate } from '../utils';
 
 type PeriodType = 'month' | 'specific-month' | 'year' | 'custom' | 'all';
 
