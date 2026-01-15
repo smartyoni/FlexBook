@@ -105,7 +105,7 @@ export default defineConfig(({ mode }) => {
               }
             ],
             cleanupOutdatedCaches: true,
-            skipWaiting: false,
+            skipWaiting: true,
             clientsClaim: true,
             navigateFallback: '/FlexBook/index.html'
           },
