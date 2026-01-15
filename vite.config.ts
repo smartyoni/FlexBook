@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
       plugins: [
         react(),
         VitePWA({
-          registerType: 'prompt',
+          registerType: 'autoUpdate',
           includeAssets: ['favicon.svg', 'logo.svg', 'apple-touch-icon.png'],
           manifest: {
             name: 'FlexBook - 전문 재무관리',

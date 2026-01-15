@@ -13,7 +13,6 @@ import { RecurringExpenses } from './pages/RecurringExpenses';
 import ScheduledExpenses from './pages/ScheduledExpenses';
 import { initializeDefaults } from './db';
 import { isMobileDevice } from './utils';
-import { UpdateNotification } from './components/UpdateNotification';
 import { OnlineStatus } from './components/OnlineStatus';
 import { InstallPrompt } from './components/InstallPrompt';
 
@@ -58,7 +57,6 @@ const App: React.FC = () => {
 
   return (
     <>
-      {isMobile && <UpdateNotification />}
       <OnlineStatus />
       {isMobile && <InstallPrompt />}
       <Router>
