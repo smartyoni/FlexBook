@@ -250,8 +250,8 @@ const Household: React.FC = () => {
               </div>
               <div className="grid grid-cols-1 gap-2">
                 {groupedTransactions[date].map((t) => (
-                  <div 
-                    key={t.id} 
+                  <div
+                    key={t.id}
                     onClick={() => handleEdit(t)}
                     className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between group hover:border-blue-200 hover:shadow-md transition-all cursor-pointer active:scale-[0.99]"
                   >
@@ -277,6 +277,29 @@ const Household: React.FC = () => {
                   </div>
                 ))}
               </div>
+
+              {/* Daily Summary */}
+              {groupedTransactions[date].length > 0 && (
+                <div className="flex items-center justify-between px-1 py-2 border-t border-slate-200 mt-2">
+                  <div className="flex items-center space-x-4 text-sm">
+                    <div className="flex items-center space-x-1">
+                      <span className="font-bold text-blue-600">💰</span>
+                      <span className="text-slate-600 font-bold">수입:</span>
+                      <span className="text-blue-600 font-black">{formatCurrency(groupedTransactions[date].filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0))}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <span className="font-bold text-red-600">💸</span>
+                      <span className="text-slate-600 font-bold">지출:</span>
+                      <span className="text-red-600 font-black">{formatCurrency(groupedTransactions[date].filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0))}</span>
+                    </div>
+                  </div>
+                  <div className="text-sm font-black">
+                    <span className={groupedTransactions[date].reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0) >= 0 ? 'text-emerald-600' : 'text-orange-600'}>
+                      {groupedTransactions[date].reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0) >= 0 ? '+' : ''}{formatCurrency(groupedTransactions[date].reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0))}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
 
