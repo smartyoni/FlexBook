@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Plus, Check, Clock } from 'lucide-react';
+import { X, Calendar, Plus, Check, Clock, TrendingUp } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Transaction, Project, Category, TransactionType, BankAccount, AccountBalance, RecurringExpense } from '../types';
 import { generateId, formatCurrency, maskAccountNumber, getBankIcon } from '../utils';
 import {
@@ -880,6 +881,147 @@ export const RecurringExpenseModal: React.FC<RecurringExpenseModalProps> = ({ is
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface DailyCategoryAnalysisModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  date: string;
+  transactions: Transaction[];
+}
+
+export const DailyCategoryAnalysisModal: React.FC<DailyCategoryAnalysisModalProps> = ({
+  isOpen,
+  onClose,
+  date,
+  transactions,
+}) => {
+  const COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316', '#14B8A6', '#6366F1'];
+
+  // 해당 날짜의 지출만 필터링
+  const dayExpenses = transactions.filter(t => t.date === date && t.type === 'expense');
+
+  // 카테고리별로 집계
+  const categoryData = dayExpenses.reduce((acc, t) => {
+    const existing = acc.find(item => item.name === t.category);
+    if (existing) {
+      existing.value += t.amount;
+    } else {
+      acc.push({ name: t.category, value: t.amount });
+    }
+    return acc;
+  }, [] as Array<{ name: string; value: number }>)
+    .sort((a, b) => b.value - a.value);
+
+  const totalExpense = categoryData.reduce((acc, item) => acc + item.value, 0);
+
+  // 날짜 포맷팅
+  const formatDateKorean = (dateStr: string): string => {
+    const [year, month, day] = dateStr.split('-');
+    return `${year}년 ${parseInt(month)}월 ${parseInt(day)}일`;
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50">
+      <div className="bg-white w-full max-w-lg rounded-t-2xl sm:rounded-2xl overflow-hidden shadow-2xl animate-slide-up">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h2 className="text-lg font-bold">{formatDateKorean(date)} 지출 분석</h2>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-500">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+          {dayExpenses.length === 0 ? (
+            <div className="py-12 text-center space-y-4">
+              <div className="text-4xl opacity-30">📊</div>
+              <p className="text-slate-400 font-bold">해당 날짜에 지출이 없습니다.</p>
+            </div>
+          ) : (
+            <>
+              {/* Summary */}
+              <div className="bg-gradient-to-br from-red-50 to-orange-50 p-4 rounded-2xl border border-red-200">
+                <p className="text-xs font-bold text-red-600 uppercase mb-1">해당일 총 지출</p>
+                <p className="text-3xl font-black text-red-600">{formatCurrency(totalExpense)}</p>
+              </div>
+
+              {/* Pie Chart */}
+              {categoryData.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">카테고리별 지출 비중</h3>
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={categoryData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={70}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {categoryData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => formatCurrency(value as number)} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Category Details */}
+                  <div className="space-y-2 border-t pt-4">
+                    {categoryData.map((item, index) => (
+                      <div key={item.name} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                        <div className="flex items-center space-x-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                          ></div>
+                          <span className="text-sm font-bold text-slate-700">{item.name}</span>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-black text-slate-800">{formatCurrency(item.value)}</p>
+                          <p className="text-xs text-slate-400 font-medium">
+                            {((item.value / totalExpense) * 100).toFixed(1)}%
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Transaction List */}
+                  <div className="space-y-2 border-t pt-4">
+                    <h4 className="text-sm font-bold text-slate-600">상세 내역</h4>
+                    {dayExpenses
+                      .sort((a, b) => b.amount - a.amount)
+                      .map((t) => (
+                        <div key={t.id} className="flex items-center justify-between p-2 text-sm">
+                          <span className="text-slate-700 font-medium">{t.description}</span>
+                          <span className="text-slate-800 font-bold">{formatCurrency(t.amount)}</span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="border-t p-4">
+          <button
+            onClick={onClose}
+            className="w-full py-3 font-bold text-white bg-slate-900 rounded-2xl hover:bg-slate-800 transition-colors"
+          >
+            닫기
+          </button>
         </div>
       </div>
     </div>

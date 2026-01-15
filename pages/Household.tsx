@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, Search, Landmark, Star, Building2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Search, Landmark, Star, Building2, TrendingUp } from 'lucide-react';
 import { getTransactions, getAccountBalances, getBankAccounts } from '../db';
 import { Transaction, MonthlySummary, AccountBalance, BankAccount } from '../types';
 import { formatCurrency, getMonthYear, formatDate } from '../utils';
-import { TransactionModal } from '../components/Modals';
+import { TransactionModal, DailyCategoryAnalysisModal } from '../components/Modals';
 
 const Household: React.FC = () => {
   const navigate = useNavigate();
@@ -24,6 +24,7 @@ const Household: React.FC = () => {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDateForAnalysis, setSelectedDateForAnalysis] = useState<string>('');
 
   // Firestore 실시간 리스너 설정
   useEffect(() => {
@@ -280,8 +281,8 @@ const Household: React.FC = () => {
 
               {/* Daily Summary */}
               {groupedTransactions[date].length > 0 && (
-                <div className="flex items-center justify-between px-1 py-2 border-t border-slate-200 mt-2">
-                  <div className="flex items-center space-x-4 text-sm">
+                <div className="flex items-center justify-between px-1 py-2 border-t border-slate-200 mt-2 flex-wrap gap-2">
+                  <div className="flex items-center space-x-4 text-sm flex-1 min-w-0">
                     <div className="flex items-center space-x-1">
                       <span className="font-bold text-blue-600">💰</span>
                       <span className="text-slate-600 font-bold">수입:</span>
@@ -293,10 +294,19 @@ const Household: React.FC = () => {
                       <span className="text-red-600 font-black">{formatCurrency(groupedTransactions[date].filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0))}</span>
                     </div>
                   </div>
-                  <div className="text-sm font-black">
-                    <span className={groupedTransactions[date].reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0) >= 0 ? 'text-emerald-600' : 'text-orange-600'}>
-                      {groupedTransactions[date].reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0) >= 0 ? '+' : ''}{formatCurrency(groupedTransactions[date].reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0))}
-                    </span>
+                  <div className="flex items-center space-x-2">
+                    <div className="text-sm font-black">
+                      <span className={groupedTransactions[date].reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0) >= 0 ? 'text-emerald-600' : 'text-orange-600'}>
+                        {groupedTransactions[date].reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0) >= 0 ? '+' : ''}{formatCurrency(groupedTransactions[date].reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0))}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setSelectedDateForAnalysis(date)}
+                      className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
+                      title="카테고리별 지출 분석"
+                    >
+                      <TrendingUp size={18} />
+                    </button>
                   </div>
                 </div>
               )}
@@ -324,6 +334,13 @@ const Household: React.FC = () => {
           setEditingTransaction(null);
           // Firestore는 실시간으로 자동 업데이트되므로 추가 액션 불필요
         }}
+      />
+
+      <DailyCategoryAnalysisModal
+        isOpen={!!selectedDateForAnalysis}
+        onClose={() => setSelectedDateForAnalysis('')}
+        date={selectedDateForAnalysis}
+        transactions={allTransactions}
       />
     </div>
   );
