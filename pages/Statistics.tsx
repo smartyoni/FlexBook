@@ -50,9 +50,10 @@ const Statistics: React.FC = () => {
 
     switch (period) {
       case 'month': {
-        // 현재 월 (기존 로직 유지)
-        const start = new Date(now.getFullYear(), now.getMonth(), 1)
-          .toISOString().split('T')[0];
+        // 현재 월 (로컬 시간대 기준 날짜 문자열 사용)
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const start = `${year}-${String(month + 1).padStart(2, '0')}-01`;
         return transactions.filter(t => t.date >= start);
       }
 
@@ -60,17 +61,15 @@ const Statistics: React.FC = () => {
         // 특정 월 선택
         if (!selectedMonth) return transactions;
         const [year, month] = selectedMonth.split('-').map(Number);
-        const start = new Date(year, month - 1, 1)
-          .toISOString().split('T')[0];
-        const end = new Date(year, month, 0)
-          .toISOString().split('T')[0];
+        const start = `${year}-${String(month).padStart(2, '0')}-01`;
+        const end = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
         return transactions.filter(t => t.date >= start && t.date <= end);
       }
 
       case 'year': {
-        // 올해 (기존 로직 유지)
-        const start = new Date(now.getFullYear(), 0, 1)
-          .toISOString().split('T')[0];
+        // 올해 (로컬 시간대 기준 날짜 문자열 사용)
+        const year = now.getFullYear();
+        const start = `${year}-01-01`;
         return transactions.filter(t => t.date >= start);
       }
 

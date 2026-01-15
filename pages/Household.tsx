@@ -72,8 +72,9 @@ const Household: React.FC = () => {
   useEffect(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-    const startDate = new Date(year, month, 1).toISOString().split('T')[0];
-    const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0];
+    // 로컬 시간대 기준 날짜 문자열 생성 (UTC 변환 방지)
+    const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+    const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${new Date(year, month + 1, 0).getDate()}`;
 
     // 현재 월의 거래만 필터링
     const monthTransactions = allTransactions.filter(t => t.date >= startDate && t.date <= endDate);
@@ -96,8 +97,9 @@ const Household: React.FC = () => {
   const filteredTransactions = useMemo(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-    const startDate = new Date(year, month, 1).toISOString().split('T')[0];
-    const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0];
+    // 로컬 시간대 기준 날짜 문자열 생성 (UTC 변환 방지)
+    const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+    const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${new Date(year, month + 1, 0).getDate()}`;
 
     return allTransactions.filter(t => {
       const matchMonth = t.date >= startDate && t.date <= endDate;
