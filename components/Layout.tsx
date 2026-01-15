@@ -7,11 +7,11 @@ const Layout: React.FC = () => {
   const location = useLocation();
   const navItems = [
     { to: '/', label: '가계부', icon: <Wallet size={20} /> },
+    { to: '/statistics', label: '통계 분석', icon: <BarChart3 size={20} /> },
     { to: '/scheduled', label: '예정된 지출', icon: <AlertCircle size={20} /> },
     { to: '/recurring', label: '고정지출', icon: <CalendarClock size={20} /> },
     { to: '/balances', label: '통장잔고', icon: <Landmark size={20} /> },
     { to: '/projects', label: '항목 관리', icon: <FolderKanban size={20} /> },
-    { to: '/statistics', label: '통계 분석', icon: <BarChart3 size={20} /> },
     { to: '/settings', label: '더보기', icon: <MoreHorizontal size={20} /> },
   ];
 
