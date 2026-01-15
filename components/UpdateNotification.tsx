@@ -16,7 +16,7 @@ export const UpdateNotification: React.FC = () => {
   return (
     <>
       {(offlineReady || needRefresh) && (
-        <div className="fixed bottom-4 left-4 right-4 z-50">
+        <div className="fixed top-4 left-4 right-4 z-50">
           <div className="bg-white rounded-lg shadow-lg border-2 border-blue-500 p-4 max-w-md mx-auto">
             <div className="flex items-start justify-between">
               <div className="flex-1">
