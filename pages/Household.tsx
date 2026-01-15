@@ -1,17 +1,25 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Search, Landmark } from 'lucide-react';
-import { getTransactions, getAccountBalances } from '../db';
-import { Transaction, MonthlySummary, AccountBalance } from '../types';
+import { useNavigate } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, Plus, Search, Landmark, Star, Building2 } from 'lucide-react';
+import { getTransactions, getAccountBalances, getBankAccounts } from '../db';
+import { Transaction, MonthlySummary, AccountBalance, BankAccount } from '../types';
 import { formatCurrency, getMonthYear, formatDate } from '../utils';
 import { TransactionModal } from '../components/Modals';
 
 const Household: React.FC = () => {
+  const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [allBalances, setAllBalances] = useState<AccountBalance[]>([]);
+  const [allAccounts, setAllAccounts] = useState<BankAccount[]>([]);
   const [summary, setSummary] = useState<MonthlySummary>({ income: 0, expense: 0, balance: 0 });
-  const [latestManualBalance, setLatestManualBalance] = useState<AccountBalance | null>(null);
+  const [favoriteAccountBalances, setFavoriteAccountBalances] = useState<Array<{
+    accountId: string;
+    accountName: string;
+    amount: number;
+    timestamp: string;
+  }>>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
@@ -23,23 +31,40 @@ const Household: React.FC = () => {
       setAllTransactions(data);
     });
 
+    const unsubscribeAccounts = getBankAccounts((accounts) => {
+      setAllAccounts(accounts);
+    });
+
     const unsubscribeBalances = getAccountBalances((data) => {
-      // 최신 기록 추출
-      if (data.length > 0) {
-        const sorted = [...data].sort((a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
-        setLatestManualBalance(sorted[0]);
-      }
       setAllBalances(data);
+
+      // 즐겨찾기된 계좌의 최신 잔액 계산
+      const favoriteAccounts = allAccounts.filter(acc => acc.isFavorite);
+      const favoriteBalances = favoriteAccounts.map(account => {
+        const accountBalances = data
+          .filter(b => b.accountId === account.id)
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+        const latestBalance = accountBalances[0];
+
+        return {
+          accountId: account.id,
+          accountName: account.accountAlias || account.bankName,
+          amount: latestBalance?.amount || 0,
+          timestamp: latestBalance?.timestamp || account.createdAt
+        };
+      });
+
+      setFavoriteAccountBalances(favoriteBalances);
     });
 
     // 클린업: 구독 해제
     return () => {
       unsubscribeTransactions();
+      unsubscribeAccounts();
       unsubscribeBalances();
     };
-  }, []);
+  }, [allAccounts]);
 
   // 현재 월의 거래 필터링 및 요약 계산
   useEffect(() => {
@@ -123,14 +148,46 @@ const Household: React.FC = () => {
       </header>
 
       <div className="p-4 md:px-8 space-y-6">
-        {/* Manual Balance Indicator (Mini) */}
-        {latestManualBalance && (
-          <div className="bg-white px-6 py-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Landmark size={18} className="text-blue-500" />
-              <span className="text-xs font-bold text-slate-500">최신 통장잔고 기록</span>
-            </div>
-            <span className="text-sm font-black text-slate-800">{formatCurrency(latestManualBalance.amount)}</span>
+        {/* Favorite Account Balances */}
+        {favoriteAccountBalances.length > 0 ? (
+          <div className={`grid ${favoriteAccountBalances.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
+            {favoriteAccountBalances.map((balance) => (
+              <div
+                key={balance.accountId}
+                className="bg-white rounded-xl shadow-sm p-4 border border-slate-200 hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => navigate('/balances')}
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Building2 className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-slate-500">통장잔고</div>
+                      <div className="font-medium text-slate-900 text-sm">{balance.accountName}</div>
+                    </div>
+                  </div>
+                  <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                </div>
+                <div className="mt-3">
+                  <div className="text-lg font-bold text-blue-600">
+                    {formatCurrency(balance.amount)}
+                  </div>
+                  <div className="text-xs text-slate-400 mt-1">
+                    {formatDate(balance.timestamp)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div
+            className="bg-slate-50 rounded-xl p-4 border border-dashed border-slate-300 text-center cursor-pointer hover:bg-slate-100 transition-colors"
+            onClick={() => navigate('/balances')}
+          >
+            <Building2 className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+            <p className="text-sm text-slate-500">즐겨찾기한 계좌가 없습니다</p>
+            <p className="text-xs text-slate-400 mt-1">통장잔고 페이지에서 계좌를 즐겨찾기 하세요</p>
           </div>
         )}
 

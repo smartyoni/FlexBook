@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Landmark, History, Trash2, Clock, Settings } from 'lucide-react';
-import { getBankAccounts, getAccountBalances, addAccountBalance, updateBankAccount, deleteBankAccount, deleteAccountBalance } from '../db';
+import { Plus, Landmark, History, Trash2, Clock, Settings, Star } from 'lucide-react';
+import { getBankAccounts, getAccountBalances, addAccountBalance, updateBankAccount, deleteBankAccount, deleteAccountBalance, toggleBankAccountFavorite } from '../db';
 import { AccountBalance, BankAccount } from '../types';
 import { formatCurrency, maskAccountNumber, getBankIcon } from '../utils';
 import { BankAccountModal, AccountHistoryModal } from '../components/Modals';
@@ -8,6 +8,7 @@ import { BankAccountModal, AccountHistoryModal } from '../components/Modals';
 const AccountBalancePage: React.FC = () => {
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [allBalances, setAllBalances] = useState<AccountBalance[]>([]);
+  const [favoriteCount, setFavoriteCount] = useState(0);
 
   // 모달 상태
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
@@ -25,6 +26,9 @@ const AccountBalancePage: React.FC = () => {
     // 실시간 리스너 설정
     const unsubscribeAccounts = getBankAccounts((accounts) => {
       setAccounts(accounts);
+      // 즐겨찾기 개수 계산
+      const count = accounts.filter(acc => acc.isFavorite).length;
+      setFavoriteCount(count);
     });
 
     const unsubscribeBalances = getAccountBalances((balances) => {
@@ -130,10 +134,36 @@ const AccountBalancePage: React.FC = () => {
     return balances && balances.length > 0 ? balances[0] : undefined;
   };
 
+  const handleToggleFavorite = async (account: BankAccount) => {
+    const currentIsFavorite = account.isFavorite || false;
+
+    // If trying to favorite and already at limit
+    if (!currentIsFavorite && favoriteCount >= 2) {
+      alert('즐겨찾기는 최대 2개까지만 가능합니다.');
+      return;
+    }
+
+    try {
+      const success = await toggleBankAccountFavorite(account.id, currentIsFavorite);
+
+      if (!success) {
+        alert('즐겨찾기는 최대 2개까지만 가능합니다.');
+      }
+    } catch (error) {
+      console.error('즐겨찾기 토글 중 오류:', error);
+      alert('즐겨찾기 처리 중 오류가 발생했습니다.');
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-full">
       <header className="sticky top-0 bg-slate-50/80 backdrop-blur-md z-40 p-4 md:p-8 flex items-center justify-between">
-        <h1 className="text-2xl font-black tracking-tight text-slate-800">통장잔고 관리</h1>
+        <div>
+          <h1 className="text-2xl font-black tracking-tight text-slate-800">통장잔고 관리</h1>
+          {accounts.length > 0 && (
+            <p className="text-sm text-slate-500 mt-1">즐겨찾기 {favoriteCount}/2</p>
+          )}
+        </div>
         <button
           onClick={() => {
             setSelectedAccountForEdit(null);
@@ -182,9 +212,39 @@ const AccountBalancePage: React.FC = () => {
               {accounts.map((account) => {
                 const latestBalance = getLatestBalance(account.id);
                 return (
-                  <div key={account.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-lg transition-all group">
+                  <div key={account.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-lg transition-all group relative">
+                    {/* Favorite Button */}
+                    <div className="absolute top-4 right-4 flex gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleFavorite(account);
+                        }}
+                        className={`p-2 rounded-full transition-all ${
+                          account.isFavorite
+                            ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
+                            : 'bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600'
+                        }`}
+                        title={account.isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+                      >
+                        <Star
+                          size={18}
+                          className={account.isFavorite ? 'fill-yellow-600' : ''}
+                        />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedAccountForEdit(account);
+                          setIsAccountModalOpen(true);
+                        }}
+                        className="p-2 text-slate-300 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
+                      >
+                        <Settings size={18} />
+                      </button>
+                    </div>
+
                     {/* Header */}
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-4 pr-20">
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xl shadow-md">
                           {getBankIcon(account.bankName)}
@@ -196,15 +256,6 @@ const AccountBalancePage: React.FC = () => {
                           )}
                         </div>
                       </div>
-                      <button
-                        onClick={() => {
-                          setSelectedAccountForEdit(account);
-                          setIsAccountModalOpen(true);
-                        }}
-                        className="p-2 text-slate-300 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
-                      >
-                        <Settings size={18} />
-                      </button>
                     </div>
 
                     {/* Balance Display */}

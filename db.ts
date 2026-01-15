@@ -276,6 +276,41 @@ export const getBankAccounts = (callback: (accounts: BankAccount[]) => void): Un
   );
 };
 
+/**
+ * Toggle favorite status for a bank account
+ * Ensures max 2 favorites at a time
+ * @returns true if toggled successfully, false if max favorites reached
+ */
+export const toggleBankAccountFavorite = async (accountId: string, currentIsFavorite: boolean): Promise<boolean> => {
+  try {
+    const userId = getUserId();
+
+    // If trying to favorite (currentIsFavorite is false, so we want to set it to true)
+    if (!currentIsFavorite) {
+      // Check current favorite count
+      const accountsRef = collection(firestore, `users/${userId}/bankAccounts`);
+      const q = query(accountsRef, where('isActive', '==', true), where('isFavorite', '==', true));
+      const snapshot = await getDocs(q);
+
+      if (snapshot.size >= 2) {
+        // Already have 2 favorites, cannot add more
+        return false;
+      }
+    }
+
+    // Toggle the favorite status
+    const accountRef = doc(firestore, `users/${userId}/bankAccounts/${accountId}`);
+    await updateDoc(accountRef, {
+      isFavorite: !currentIsFavorite
+    });
+
+    return true;
+  } catch (error) {
+    console.error('즐겨찾기 토글 중 오류:', error);
+    throw error;
+  }
+};
+
 // ============================================================================
 // ACCOUNT BALANCES (잔액 기록)
 // ============================================================================

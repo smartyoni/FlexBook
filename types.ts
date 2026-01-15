@@ -42,6 +42,7 @@ export interface BankAccount {
   memo?: string;
   createdAt: string;
   isActive: boolean;
+  isFavorite?: boolean;
 }
 
 export interface AccountBalance {
