@@ -5,8 +5,25 @@ import { getTransactions, getProjects } from '../db';
 import { Transaction, Project } from '../types';
 import { formatCurrency } from '../utils';
 
+type PeriodType = 'month' | 'specific-month' | 'year' | 'custom' | 'all';
+
+// YYYY-MM => "YYYY년 M월"
+const formatMonthKorean = (monthStr: string): string => {
+  const [year, month] = monthStr.split('-');
+  return `${year}년 ${parseInt(month)}월`;
+};
+
+// YYYY-MM-DD => "YYYY년 M월 D일"
+const formatDateKorean = (dateStr: string): string => {
+  const [year, month, day] = dateStr.split('-');
+  return `${year}년 ${parseInt(month)}월 ${parseInt(day)}일`;
+};
+
 const Statistics: React.FC = () => {
-  const [period, setPeriod] = useState<'month' | 'year' | 'all'>('month');
+  const [period, setPeriod] = useState<PeriodType>('month');
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
 
@@ -29,15 +46,46 @@ const Statistics: React.FC = () => {
 
   const filteredData = useMemo(() => {
     const now = new Date();
-    if (period === 'month') {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      return transactions.filter(t => t.date >= start);
-    } else if (period === 'year') {
-      const start = new Date(now.getFullYear(), 0, 1).toISOString();
-      return transactions.filter(t => t.date >= start);
+
+    switch (period) {
+      case 'month': {
+        // 현재 월 (기존 로직 유지)
+        const start = new Date(now.getFullYear(), now.getMonth(), 1)
+          .toISOString().split('T')[0];
+        return transactions.filter(t => t.date >= start);
+      }
+
+      case 'specific-month': {
+        // 특정 월 선택
+        if (!selectedMonth) return transactions;
+        const [year, month] = selectedMonth.split('-').map(Number);
+        const start = new Date(year, month - 1, 1)
+          .toISOString().split('T')[0];
+        const end = new Date(year, month, 0)
+          .toISOString().split('T')[0];
+        return transactions.filter(t => t.date >= start && t.date <= end);
+      }
+
+      case 'year': {
+        // 올해 (기존 로직 유지)
+        const start = new Date(now.getFullYear(), 0, 1)
+          .toISOString().split('T')[0];
+        return transactions.filter(t => t.date >= start);
+      }
+
+      case 'custom': {
+        // 사용자 정의 기간
+        if (!customStartDate || !customEndDate) return transactions;
+        return transactions.filter(
+          t => t.date >= customStartDate && t.date <= customEndDate
+        );
+      }
+
+      case 'all':
+      default:
+        return transactions;
     }
-    return transactions;
-  }, [transactions, period]);
+  }, [transactions, period, selectedMonth, customStartDate, customEndDate]);
 
   const pieData = useMemo(() => {
     const expenses = filteredData.filter(t => t.type === 'expense');
@@ -76,24 +124,97 @@ const Statistics: React.FC = () => {
   return (
     <div className="flex flex-col min-h-full">
       <header className="sticky top-0 bg-slate-50/80 backdrop-blur-md z-40 p-4 md:p-8">
-        <h1 className="text-2xl font-black tracking-tight text-slate-800">통계 보고서</h1>
+        <h1 className="text-2xl font-black tracking-tight text-slate-800">
+          통계 분석
+          {period === 'month' && ' - 이번 달'}
+          {period === 'specific-month' && selectedMonth && ` - ${formatMonthKorean(selectedMonth)}`}
+          {period === 'year' && ' - 올해'}
+          {period === 'custom' && customStartDate && customEndDate &&
+            ` - ${formatDateKorean(customStartDate)} ~ ${formatDateKorean(customEndDate)}`}
+          {period === 'all' && ' - 전체'}
+        </h1>
       </header>
 
       <div className="p-4 md:px-8 space-y-6 pb-12">
         {/* Period Selector */}
-        <div className="flex p-1 bg-white rounded-2xl border border-slate-200 shadow-sm max-w-md">
-          {['month', 'year', 'all'].map(p => (
+        <div className="flex flex-wrap gap-2 p-2 bg-white rounded-2xl border border-slate-200 shadow-sm">
+          {[
+            { value: 'month', label: '이번 달' },
+            { value: 'specific-month', label: '특정 월' },
+            { value: 'year', label: '올해' },
+            { value: 'custom', label: '기간 설정' },
+            { value: 'all', label: '전체' }
+          ].map(({ value, label }) => (
             <button
-              key={p}
-              onClick={() => setPeriod(p as any)}
-              className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${
-                period === p ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'
+              key={value}
+              onClick={() => setPeriod(value as PeriodType)}
+              className={`flex-1 min-w-[80px] py-3 px-2 text-sm font-bold rounded-xl transition-all ${
+                period === value
+                  ? 'bg-slate-800 text-white shadow-lg'
+                  : 'text-slate-500 hover:bg-slate-50'
               }`}
             >
-              {p === 'month' ? '이번 달' : p === 'year' ? '올해' : '전체'}
+              {label}
             </button>
           ))}
         </div>
+
+        {/* Specific Month Selector */}
+        {period === 'specific-month' && (
+          <div className="mt-4 p-4 bg-white rounded-2xl border border-slate-200 shadow-sm">
+            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">
+              월 선택
+            </label>
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold"
+              max={new Date().toISOString().slice(0, 7)}
+            />
+          </div>
+        )}
+
+        {/* Custom Date Range Selector */}
+        {period === 'custom' && (
+          <div className="mt-4 p-4 bg-white rounded-2xl border border-slate-200 shadow-sm">
+            <label className="block text-xs font-bold text-slate-400 uppercase mb-3">
+              기간 설정
+            </label>
+            <div className="flex flex-col md:flex-row gap-3 items-center">
+              <div className="flex-1 w-full">
+                <label className="block text-xs text-slate-500 mb-1 ml-1">시작일</label>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  max={customEndDate || new Date().toISOString().split('T')[0]}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold"
+                />
+              </div>
+
+              <span className="text-slate-400 font-bold hidden md:block">~</span>
+
+              <div className="flex-1 w-full">
+                <label className="block text-xs text-slate-500 mb-1 ml-1">종료일</label>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  min={customStartDate}
+                  max={new Date().toISOString().split('T')[0]}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold"
+                />
+              </div>
+            </div>
+
+            {customStartDate && customEndDate && customStartDate > customEndDate && (
+              <p className="mt-2 text-xs text-red-500 font-bold">
+                ⚠️ 종료일은 시작일보다 이후여야 합니다.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Trend Chart */}
