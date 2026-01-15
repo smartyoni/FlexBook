@@ -16,6 +16,14 @@ import {
   updateRecurringExpense,
 } from '../db';
 
+// 로컬 시간대의 YYYY-MM-DD 형식 날짜 문자열 반환
+const getLocalDateString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -29,7 +37,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
   const [description, setDescription] = useState(initialData?.description || '');
   const [category, setCategory] = useState(initialData?.category || '');
   const [projectId, setProjectId] = useState(initialData?.projectId || '');
-  const [date, setDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(initialData?.date || getLocalDateString(new Date()));
   const [memo, setMemo] = useState(initialData?.memo || '');
 
   const [categories, setCategories] = useState<Category[]>([]);
