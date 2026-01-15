@@ -15,7 +15,10 @@ import {
   updateBankAccount,
   addRecurringExpense,
   updateRecurringExpense,
+  getBankAccounts,
+  addAccountBalance,
 } from '../db';
+import { parseShinhanSMS, ParsedTransaction } from '../utils/smsParser';
 
 // 로컬 시간대의 YYYY-MM-DD 형식 날짜 문자열 반환
 const getLocalDateString = (date: Date): string => {
@@ -43,10 +46,17 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
 
   // Quick Category Add State
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+
+  // SMS 파싱 State
+  const [showSmsInput, setShowSmsInput] = useState(false);
+  const [smsText, setSmsText] = useState('');
+  const [parsedData, setParsedData] = useState<ParsedTransaction | null>(null);
+  const [matchingAccount, setMatchingAccount] = useState<BankAccount | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -58,6 +68,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
       // 항목 실시간 리스너 (활성화된 항목만)
       const unsubscribeProjects = getProjects((projects) => {
         setProjects(projects.filter(p => p.status === 'active'));
+      });
+
+      // 은행 계좌 실시간 리스너
+      const unsubscribeBankAccounts = getBankAccounts((accounts) => {
+        setBankAccounts(accounts);
       });
 
       if (initialData) {
@@ -77,14 +92,85 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
       }
       setIsAddingCategory(false);
       setNewCategoryName('');
+      setShowSmsInput(false);
+      setSmsText('');
+      setParsedData(null);
+      setMatchingAccount(null);
 
       // 클린업: 구독 해제
       return () => {
         unsubscribeCategories();
         unsubscribeProjects();
+        unsubscribeBankAccounts();
       };
     }
   }, [isOpen, initialData]);
+
+  // 계좌번호로 BankAccount 찾기
+  const findMatchingAccount = (accountNumber: string): BankAccount | null => {
+    return bankAccounts.find(
+      (acc) => acc.accountNumber === accountNumber
+    ) || null;
+  };
+
+  // 계좌 잔액 자동 업데이트
+  const updateAccountBalanceFromSMS = async (
+    accountNumber: string,
+    balance: number,
+    timestamp: string
+  ) => {
+    const matched = findMatchingAccount(accountNumber);
+    setMatchingAccount(matched);
+
+    if (matched) {
+      try {
+        await addAccountBalance({
+          accountId: matched.id,
+          amount: balance,
+          timestamp,
+          memo: 'SMS 자동 업데이트'
+        });
+        console.log('계좌 잔액 자동 업데이트 완료');
+      } catch (error) {
+        console.error('계좌 잔액 업데이트 실패:', error);
+      }
+    } else {
+      console.log('매칭되는 계좌를 찾을 수 없습니다:', accountNumber);
+    }
+  };
+
+  // SMS 파싱 핸들러
+  const handleSmsParse = async (text: string) => {
+    if (!text.trim()) {
+      setParsedData(null);
+      setMatchingAccount(null);
+      return;
+    }
+
+    const parsed = parseShinhanSMS(text);
+    if (parsed) {
+      setParsedData(parsed);
+
+      // 폼 필드 자동 입력
+      setType(parsed.type);
+      setAmount(parsed.amount.toString());
+      setDescription(parsed.description);
+      setDate(parsed.date);
+      setMemo(
+        `계좌: ${parsed.accountNumber}\n잔액: ${parsed.balance.toLocaleString()}원\n시간: ${parsed.originalTime}`
+      );
+
+      // 계좌 잔액 자동 업데이트
+      await updateAccountBalanceFromSMS(
+        parsed.accountNumber,
+        parsed.balance,
+        `${parsed.date}T${parsed.originalTime}:00`
+      );
+    } else {
+      setParsedData(null);
+      setMatchingAccount(null);
+    }
+  };
 
   const handleQuickAddCategory = async () => {
     if (!newCategoryName.trim()) return;
@@ -173,6 +259,53 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
             >
               지출
             </button>
+          </div>
+
+          {/* SMS 입력 섹션 */}
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowSmsInput(!showSmsInput);
+                if (showSmsInput) {
+                  setSmsText('');
+                  setParsedData(null);
+                  setMatchingAccount(null);
+                }
+              }}
+              className="w-full py-2 px-4 bg-blue-50 border border-blue-200 text-blue-600 rounded-lg font-bold hover:bg-blue-100 transition-colors"
+            >
+              📱 문자로 입력
+            </button>
+
+            {showSmsInput && (
+              <div className="space-y-2">
+                <textarea
+                  value={smsText}
+                  onChange={(e) => {
+                    setSmsText(e.target.value);
+                    handleSmsParse(e.target.value);
+                  }}
+                  placeholder="신한은행 문자 메시지 전체를 붙여넣으세요..."
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm font-medium"
+                  rows={6}
+                />
+
+                {parsedData && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="text-sm font-bold text-green-700">
+                      ✅ 파싱 완료: {parsedData.type === 'income' ? '입금' : '출금'}{' '}
+                      {parsedData.amount.toLocaleString()}원
+                    </div>
+                    {matchingAccount && (
+                      <div className="text-xs text-green-600 mt-1">
+                        💰 {matchingAccount.bankName} 계좌 잔액 업데이트됨
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div>
