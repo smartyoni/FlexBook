@@ -17,6 +17,7 @@ import {
   updateRecurringExpense,
   getBankAccounts,
   addAccountBalance,
+  deleteTransaction,
 } from '../db';
 import { parseShinhanSMS, ParsedTransaction } from '../utils/smsParser';
 
@@ -169,6 +170,22 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
     } else {
       setParsedData(null);
       setMatchingAccount(null);
+    }
+  };
+
+  // 거래 삭제
+  const handleDelete = async () => {
+    if (!initialData) return;
+
+    if (confirm('이 거래를 삭제하시겠습니까? 삭제된 거래는 복구할 수 없습니다.')) {
+      try {
+        await deleteTransaction(initialData.id);
+        onSave();
+        onClose();
+      } catch (error) {
+        console.error('거래 삭제 중 오류:', error);
+        alert('거래 삭제에 실패했습니다.');
+      }
     }
   };
 
@@ -434,20 +451,31 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
             />
           </div>
 
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-4 font-bold text-slate-500 bg-slate-100 rounded-2xl hover:bg-slate-200 transition-colors"
-            >
-              취소
-            </button>
-            <button
-              type="submit"
-              className="flex-1 py-4 font-bold text-white bg-slate-900 rounded-2xl hover:bg-slate-800 shadow-xl shadow-slate-200 transition-all active:scale-[0.98]"
-            >
-              거래 저장
-            </button>
+          <div className="space-y-3 pt-4">
+            {initialData && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="w-full py-3 font-bold text-red-600 bg-red-50 border-2 border-red-200 rounded-2xl hover:bg-red-100 transition-colors"
+              >
+                🗑️ 이 거래 삭제
+              </button>
+            )}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-4 font-bold text-slate-500 bg-slate-100 rounded-2xl hover:bg-slate-200 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-4 font-bold text-white bg-slate-900 rounded-2xl hover:bg-slate-800 shadow-xl shadow-slate-200 transition-all active:scale-[0.98]"
+              >
+                거래 저장
+              </button>
+            </div>
           </div>
         </form>
       </div>
