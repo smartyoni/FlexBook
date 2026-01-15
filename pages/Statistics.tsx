@@ -24,6 +24,7 @@ const Statistics: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
 
@@ -270,7 +271,15 @@ const Statistics: React.FC = () => {
               </div>
               <div className="w-full md:w-1/2 mt-4 md:mt-0 md:pl-8 grid grid-cols-1 gap-3">
                 {pieData.slice(0, 5).map((d, i) => (
-                  <div key={d.name} className="flex items-center justify-between">
+                  <div
+                    key={d.name}
+                    onClick={() => setSelectedCategory(selectedCategory === d.name ? '' : d.name)}
+                    className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all ${
+                      selectedCategory === d.name
+                        ? 'bg-blue-50 border-2 border-blue-300'
+                        : 'hover:bg-slate-50 border-2 border-transparent'
+                    }`}
+                  >
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }}></div>
                       <span className="text-xs font-bold text-slate-700 truncate max-w-[100px]">{d.name}</span>
@@ -283,26 +292,53 @@ const Statistics: React.FC = () => {
           </div>
         </div>
 
-        {/* Project Ranking Table */}
-        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
-          <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest">항목별 수익성 순위</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {projectProfits.map((p, idx) => (
-              <div key={p.name} className="bg-slate-50 p-5 rounded-2xl flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <span className="text-lg font-black text-slate-300">#{idx + 1}</span>
-                  <span className="text-sm font-bold text-slate-700">{p.name}</span>
+        {/* Category Expense Details */}
+        {selectedCategory && (
+          <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest">
+                {selectedCategory} - 지출 내역
+              </h2>
+              <button
+                onClick={() => setSelectedCategory('')}
+                className="text-xs font-bold text-slate-400 hover:text-slate-600 px-3 py-1 rounded-lg hover:bg-slate-100 transition-all"
+              >
+                ✕ 닫기
+              </button>
+            </div>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {filteredData
+                .filter(t => t.type === 'expense' && t.category === selectedCategory)
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                .map((t) => (
+                  <div
+                    key={t.id}
+                    className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-200 transition-all"
+                  >
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-slate-800">{t.description}</p>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <span className="text-xs text-slate-400">{formatDate(t.date)}</span>
+                        {t.projectId && (
+                          <span className="text-xs text-blue-500 font-bold">
+                            # {projects.find(p => p.id === t.projectId)?.name || 'Unknown'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-sm font-black text-red-500 ml-4">
+                      {formatCurrency(t.amount)}
+                    </span>
+                  </div>
+                ))}
+              {filteredData.filter(t => t.type === 'expense' && t.category === selectedCategory).length === 0 && (
+                <div className="py-12 text-center text-slate-400 font-bold">
+                  {selectedCategory}의 지출 항목이 없습니다.
                 </div>
-                <span className={`text-sm font-black ${p.profit >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                  {p.profit >= 0 ? '+' : ''}{formatCurrency(p.profit)}
-                </span>
-              </div>
-            ))}
-            {projectProfits.length === 0 && (
-              <div className="col-span-full py-12 text-center text-slate-400 font-bold">항목 데이터가 없습니다.</div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
