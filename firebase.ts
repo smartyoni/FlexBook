@@ -1,10 +1,10 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, Auth } from 'firebase/auth';
 import {
-  getFirestore,
+  initializeFirestore,
   Firestore,
-  enableIndexedDbPersistence,
-  CACHE_SIZE_UNLIMITED
+  persistentLocalCache,
+  persistentMultipleTabManager
 } from 'firebase/firestore';
 
 // Firebase 설정 정보
@@ -20,24 +20,17 @@ const firebaseConfig = {
 // Firebase 초기화
 const app = initializeApp(firebaseConfig);
 
-// Auth 및 Firestore 인스턴스 생성
+// Auth 인스턴스 생성
 export const auth: Auth = getAuth(app);
-export const firestore: Firestore = getFirestore(app);
 
-// Firestore 오프라인 지속성 활성화
-enableIndexedDbPersistence(firestore, {
-  cacheSizeBytes: CACHE_SIZE_UNLIMITED
-})
-  .then(() => {
-    console.log('Firestore 오프라인 지속성 활성화됨');
+// Firestore 인스턴스 생성 (현대적 캐시 API 사용)
+export const firestore: Firestore = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
   })
-  .catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn('여러 탭이 열려있어 지속성을 활성화할 수 없습니다.');
-    } else if (err.code === 'unimplemented') {
-      console.warn('현재 브라우저는 오프라인 지속성을 지원하지 않습니다.');
-    }
-  });
+});
+
+console.log('Firestore 오프라인 지속성 활성화됨');
 
 // 익명 로그인 함수
 export const initAuth = async (): Promise<void> => {
