@@ -19,6 +19,7 @@ import {
   AccountBalance,
   BankAccount,
   RecurringExpense,
+  ScheduledExpense,
 } from './types';
 
 // ============================================================================
@@ -411,6 +412,63 @@ export const getRecurringExpenses = (
     },
     (error) => {
       console.error('고정지출 조회 중 오류:', error);
+      callback([]);
+    }
+  );
+};
+
+// ============================================================================
+// SCHEDULED EXPENSES (예정된 지출)
+// ============================================================================
+
+export const addScheduledExpense = async (data: Omit<ScheduledExpense, 'id'>) => {
+  const userId = getUserId();
+  const docRef = await addDoc(
+    collection(firestore, `users/${userId}/scheduledExpenses`),
+    cleanData({
+      ...data,
+      createdAt: data.createdAt || new Date().toISOString(),
+      updatedAt: data.updatedAt || new Date().toISOString(),
+    })
+  );
+  return docRef.id;
+};
+
+export const updateScheduledExpense = async (
+  id: string,
+  data: Partial<ScheduledExpense>
+) => {
+  const userId = getUserId();
+  const docRef = doc(firestore, `users/${userId}/scheduledExpenses/${id}`);
+  await updateDoc(docRef, cleanData({
+    ...data,
+    updatedAt: new Date().toISOString(),
+  }));
+};
+
+export const deleteScheduledExpense = async (id: string) => {
+  const userId = getUserId();
+  const docRef = doc(firestore, `users/${userId}/scheduledExpenses/${id}`);
+  await deleteDoc(docRef);
+};
+
+export const getScheduledExpenses = (
+  callback: (expenses: ScheduledExpense[]) => void
+): Unsubscribe => {
+  const userId = getUserId();
+  return onSnapshot(
+    collection(firestore, `users/${userId}/scheduledExpenses`),
+    (snapshot) => {
+      const data = snapshot.docs
+        .map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        } as ScheduledExpense))
+        .sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate));
+      callback(data);
+    },
+    (error) => {
+      console.error('예정된 지출 조회 중 오류:', error);
       callback([]);
     }
   );

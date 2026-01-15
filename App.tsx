@@ -10,6 +10,7 @@ import Settings from './pages/Settings';
 import CategoryManagement from './pages/CategoryManagement';
 import AccountBalancePage from './pages/AccountBalance'; // 새 페이지 임포트
 import { RecurringExpenses } from './pages/RecurringExpenses';
+import ScheduledExpenses from './pages/ScheduledExpenses';
 import { initializeDefaults } from './db';
 import { isMobileDevice } from './utils';
 import { UpdateNotification } from './components/UpdateNotification';
@@ -64,6 +65,7 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Household />} />
+            <Route path="scheduled" element={<ScheduledExpenses />} /> {/* 예정된 지출 라우트 */}
             <Route path="recurring" element={<RecurringExpenses />} /> {/* 고정지출 라우트 */}
             <Route path="balances" element={<AccountBalancePage />} /> {/* 새 라우트 등록 */}
             <Route path="projects" element={<Projects />} />

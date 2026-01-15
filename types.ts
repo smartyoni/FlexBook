@@ -72,3 +72,15 @@ export interface RecurringExpense {
   recurrenceType: 'regular' | 'irregular';
   months?: number[];
 }
+
+export interface ScheduledExpense {
+  id: string;
+  name: string;
+  amount: number;
+  category: string;
+  scheduledDate: string;
+  memo?: string;
+  status: 'pending' | 'completed' | 'cancelled';
+  createdAt: string;
+  updatedAt: string;
+}
