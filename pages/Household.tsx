@@ -37,25 +37,6 @@ const Household: React.FC = () => {
 
     const unsubscribeBalances = getAccountBalances((data) => {
       setAllBalances(data);
-
-      // 즐겨찾기된 계좌의 최신 잔액 계산
-      const favoriteAccounts = allAccounts.filter(acc => acc.isFavorite);
-      const favoriteBalances = favoriteAccounts.map(account => {
-        const accountBalances = data
-          .filter(b => b.accountId === account.id)
-          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-        const latestBalance = accountBalances[0];
-
-        return {
-          accountId: account.id,
-          accountName: account.accountAlias || account.bankName,
-          amount: latestBalance?.amount || 0,
-          timestamp: latestBalance?.timestamp || account.createdAt
-        };
-      });
-
-      setFavoriteAccountBalances(favoriteBalances);
     });
 
     // 클린업: 구독 해제
@@ -64,7 +45,28 @@ const Household: React.FC = () => {
       unsubscribeAccounts();
       unsubscribeBalances();
     };
-  }, [allAccounts]);
+  }, []);
+
+  // 즐겨찾기된 계좌의 최신 잔액 계산 (별도 useEffect)
+  useEffect(() => {
+    const favoriteAccounts = allAccounts.filter(acc => acc.isFavorite);
+    const favoriteBalances = favoriteAccounts.map(account => {
+      const accountBalances = allBalances
+        .filter(b => b.accountId === account.id)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      const latestBalance = accountBalances[0];
+
+      return {
+        accountId: account.id,
+        accountName: account.accountAlias || account.bankName,
+        amount: latestBalance?.amount || 0,
+        timestamp: latestBalance?.timestamp || account.createdAt
+      };
+    });
+
+    setFavoriteAccountBalances(favoriteBalances);
+  }, [allAccounts, allBalances]);
 
   // 현재 월의 거래 필터링 및 요약 계산
   useEffect(() => {
