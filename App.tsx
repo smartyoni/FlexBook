@@ -11,12 +11,31 @@ import CategoryManagement from './pages/CategoryManagement';
 import AccountBalancePage from './pages/AccountBalance'; // 새 페이지 임포트
 import { RecurringExpenses } from './pages/RecurringExpenses';
 import { initializeDefaults } from './db';
+import { isMobileDevice } from './utils';
 import { UpdateNotification } from './components/UpdateNotification';
 import { OnlineStatus } from './components/OnlineStatus';
 import { InstallPrompt } from './components/InstallPrompt';
 
 const App: React.FC = () => {
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // 디바이스 타입 감지
+  useEffect(() => {
+    const checkDevice = () => {
+      setIsMobile(isMobileDevice());
+    };
+
+    // 초기 감지
+    checkDevice();
+
+    // 화면 크기 변경 시 재감지
+    window.addEventListener('resize', checkDevice);
+
+    return () => {
+      window.removeEventListener('resize', checkDevice);
+    };
+  }, []);
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -38,9 +57,9 @@ const App: React.FC = () => {
 
   return (
     <>
-      <UpdateNotification />
+      {isMobile && <UpdateNotification />}
       <OnlineStatus />
-      <InstallPrompt />
+      {isMobile && <InstallPrompt />}
       <Router>
         <Routes>
           <Route path="/" element={<Layout />}>

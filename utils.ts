@@ -48,6 +48,22 @@ export const maskAccountNumber = (accountNumber?: string): string => {
   return `****${accountNumber.slice(-4)}`;
 };
 
+/**
+ * 모바일 디바이스인지 확인
+ * @returns 모바일이면 true, 데스크탑이면 false
+ */
+export const isMobileDevice = (): boolean => {
+  // 화면 너비 기준 (768px 이하는 모바일로 간주)
+  const isMobileWidth = window.innerWidth <= 768;
+
+  // User Agent 기준 (모바일 OS 감지)
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+
+  return isMobileWidth || isMobileUA;
+};
+
 export const getBankIcon = (bankName: string): string => {
   const iconMap: Record<string, string> = {
     '국민은행': '🟡',
