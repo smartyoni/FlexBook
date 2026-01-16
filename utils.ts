@@ -82,3 +82,23 @@ export const getBankIcon = (bankName: string): string => {
   };
   return iconMap[bankName] || '🏦';
 };
+
+export const getTodayString = (): string => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+export const formatDateKorean = (dateStr: string): string => {
+  const [year, month, day] = dateStr.split('-');
+  return `${year}년 ${parseInt(month)}월 ${parseInt(day)}일`;
+};
+
+export const formatDateRange = (start: string, end: string): string => {
+  if (start === end) {
+    return formatDateKorean(start);
+  }
+  return `${formatDateKorean(start)} ~ ${formatDateKorean(end)}`;
+};

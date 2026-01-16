@@ -1,12 +1,13 @@
 
 import React from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Wallet, FolderKanban, BarChart3, MoreHorizontal, Landmark, CalendarClock, AlertCircle } from 'lucide-react';
+import { Wallet, FolderKanban, BarChart3, MoreHorizontal, Landmark, CalendarClock, AlertCircle, ListTree } from 'lucide-react';
 
 const Layout: React.FC = () => {
   const location = useLocation();
   const navItems = [
     { to: '/', label: '가계부', icon: <Wallet size={20} /> },
+    { to: '/category-analysis', label: '카테고리별', icon: <ListTree size={20} /> },
     { to: '/statistics', label: '통계 분석', icon: <BarChart3 size={20} /> },
     { to: '/scheduled', label: '예정된 지출', icon: <AlertCircle size={20} /> },
     { to: '/recurring', label: '고정지출', icon: <CalendarClock size={20} /> },

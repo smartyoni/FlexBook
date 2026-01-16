@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Household from './pages/Household';
+import CategoryAnalysis from './pages/CategoryAnalysis';
 import Projects from './pages/Projects';
 import ProjectDetail from './pages/ProjectDetail';
 import Statistics from './pages/Statistics';
@@ -63,6 +64,7 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Household />} />
+            <Route path="category-analysis" element={<CategoryAnalysis />} />
             <Route path="scheduled" element={<ScheduledExpenses />} /> {/* 예정된 지출 라우트 */}
             <Route path="recurring" element={<RecurringExpenses />} /> {/* 고정지출 라우트 */}
             <Route path="balances" element={<AccountBalancePage />} /> {/* 새 라우트 등록 */}
