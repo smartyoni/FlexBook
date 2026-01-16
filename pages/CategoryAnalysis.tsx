@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Transaction, Category, TransactionType } from '../types';
 import { getTransactions, getCategories } from '../db';
-import { formatCurrency, formatDate, getTodayString, formatDateRange } from '../utils';
+import { formatCurrency, formatDate, getTodayString, formatDateRange, dateToString, formatDateWithDay } from '../utils';
 
 interface CategoryAnalysisData {
   categoryId: string;
@@ -17,10 +17,11 @@ interface CategoryAnalysisData {
 }
 
 const CategoryAnalysis: React.FC = () => {
-  // 기간 설정 관련
-  const [period, setPeriod] = useState<'today' | 'custom'>('today');
-  const [startDate, setStartDate] = useState<string>(getTodayString());
-  const [endDate, setEndDate] = useState<string>(getTodayString());
+  // 날짜 관련
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [isCustomRange, setIsCustomRange] = useState<boolean>(false);
+  const [customStartDate, setCustomStartDate] = useState<string>(getTodayString());
+  const [customEndDate, setCustomEndDate] = useState<string>(getTodayString());
 
   // 데이터 관련
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -46,23 +47,40 @@ const CategoryAnalysis: React.FC = () => {
     };
   }, []);
 
-  // 기간 변경 시 날짜 자동 업데이트
-  useEffect(() => {
-    if (period === 'today') {
-      const today = getTodayString();
-      setStartDate(today);
-      setEndDate(today);
+  // 날짜 이동 함수
+  const changeDay = useCallback((delta: number) => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() + delta);
+
+    // 미래 날짜는 이동 불가
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (newDate <= today) {
+      setCurrentDate(newDate);
     }
-  }, [period]);
+  }, [currentDate]);
 
   // 기간별 거래 필터링
   const filteredTransactions = useMemo(() => {
+    let startDate: string;
+    let endDate: string;
+
+    if (isCustomRange) {
+      startDate = customStartDate;
+      endDate = customEndDate;
+    } else {
+      // 현재 선택된 날짜만 사용
+      startDate = dateToString(currentDate);
+      endDate = dateToString(currentDate);
+    }
+
     return transactions.filter((t) => {
       const matchPeriod = t.date >= startDate && t.date <= endDate;
       const matchType = selectedType === 'all' || t.type === selectedType;
       return matchPeriod && matchType;
     });
-  }, [transactions, startDate, endDate, selectedType]);
+  }, [transactions, currentDate, isCustomRange, customStartDate, customEndDate, selectedType]);
 
   // 카테고리별 그룹화 및 통계 계산
   const categoryAnalysisData = useMemo<CategoryAnalysisData[]>(() => {
@@ -144,70 +162,67 @@ const CategoryAnalysis: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-6 md:py-8 pb-20 md:pb-8">
       <div className="max-w-3xl mx-auto space-y-6">
-        {/* 헤더 */}
-        <div className="space-y-2">
-          <h1 className="text-3xl font-black text-slate-900">카테고리별 분석</h1>
-          <p className="text-sm text-slate-500">
-            기간: <span className="font-bold text-slate-700">{formatDateRange(startDate, endDate)}</span>
-          </p>
-        </div>
-
-        {/* 기간 선택 */}
-        <div className="space-y-3">
-          <div className="flex gap-2 p-2 bg-white rounded-2xl border border-slate-200 shadow-sm">
+        {/* 상단 헤더 - 날짜 이동 */}
+        <header className="sticky top-0 bg-slate-50/80 backdrop-blur-md z-40 p-4 md:p-6 flex items-center justify-between -mx-4 md:-mx-6">
+          <div className="flex items-center space-x-2">
             <button
-              onClick={() => setPeriod('today')}
-              className={`flex-1 py-3 px-4 text-sm font-bold rounded-xl transition-all ${
-                period === 'today'
-                  ? 'bg-slate-800 text-white shadow-lg'
-                  : 'text-slate-500 hover:bg-slate-50'
-              }`}
+              onClick={() => changeDay(-1)}
+              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-xl transition-all"
             >
-              오늘
+              <ChevronLeft size={24} />
             </button>
+            <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-800 whitespace-nowrap">
+              {formatDateWithDay(currentDate)}
+            </h1>
             <button
-              onClick={() => setPeriod('custom')}
-              className={`flex-1 py-3 px-4 text-sm font-bold rounded-xl transition-all ${
-                period === 'custom'
-                  ? 'bg-slate-800 text-white shadow-lg'
-                  : 'text-slate-500 hover:bg-slate-50'
-              }`}
+              onClick={() => changeDay(1)}
+              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-xl transition-all"
             >
-              기간 설정
+              <ChevronRight size={24} />
             </button>
           </div>
+          <button
+            onClick={() => setIsCustomRange(!isCustomRange)}
+            className={`py-2 px-4 text-xs md:text-sm font-bold rounded-xl transition-all ${
+              isCustomRange
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            기간 설정
+          </button>
+        </header>
 
-          {/* 기간 설정 시 날짜 선택기 */}
-          {period === 'custom' && (
-            <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-3">
-              <label className="block text-xs font-bold text-slate-400 uppercase">기간 설정</label>
-              <div className="flex flex-col md:flex-row gap-3 items-center">
-                <div className="flex-1 w-full">
-                  <label className="block text-xs text-slate-500 mb-1 ml-1">시작일</label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    max={endDate || getTodayString()}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold"
-                  />
-                </div>
-                <span className="text-slate-400 font-bold hidden md:block">~</span>
-                <div className="flex-1 w-full">
-                  <label className="block text-xs text-slate-500 mb-1 ml-1">종료일</label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    min={startDate}
-                    max={getTodayString()}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold"
-                  />
-                </div>
+        {/* 기간 설정 UI - 토글 */}
+        {isCustomRange && (
+          <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-3">
+            <label className="block text-xs font-bold text-slate-400 uppercase">기간 설정</label>
+            <div className="flex flex-col md:flex-row gap-3 items-center">
+              <div className="flex-1 w-full">
+                <label className="block text-xs text-slate-500 mb-1 ml-1">시작일</label>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  max={customEndDate || getTodayString()}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold"
+                />
+              </div>
+              <span className="text-slate-400 font-bold hidden md:block">~</span>
+              <div className="flex-1 w-full">
+                <label className="block text-xs text-slate-500 mb-1 ml-1">종료일</label>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  min={customStartDate}
+                  max={getTodayString()}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold"
+                />
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* 필터 버튼 */}
         <div className="flex gap-2 p-2 bg-white rounded-2xl border border-slate-200 shadow-sm">
